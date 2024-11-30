@@ -38,7 +38,7 @@ const App: React.FC = () => {
         value={currentThought}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
-        placeholder="Enter a thought..."
+        placeholder="express a winding thought..."
         className={`thought-input ${isFocusedMode ? "focused" : ""}`}
         rows={1} // Initial number of rows
       />
