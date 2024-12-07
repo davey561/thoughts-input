@@ -3,6 +3,10 @@ import { useNavigate, BrowserRouter as Router, Routes, Route } from "react-route
 import MainPage from "./components/MainPage";
 import FocusedThoughtPage from "./components/FocusedThoughtPage";
 
+import { auth } from './firebase/firebaseConfig';
+
+
+
 const App: React.FC = () => {
   const [selectedThought, setSelectedThought] = useState<string | null>(null);
 
