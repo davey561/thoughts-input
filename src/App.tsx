@@ -1,58 +1,50 @@
-import React, { useState, useEffect, useRef } from "react";
-import "./App.css";
+import React, { useState } from "react";
+import { useNavigate, BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import MainPage from "./components/MainPage";
+import FocusedThoughtPage from "./components/FocusedThoughtPage";
 
 const App: React.FC = () => {
-  const [thoughts, setThoughts] = useState<string[]>(() => {
-    const savedThoughts = localStorage.getItem("thoughts");
-    return savedThoughts ? JSON.parse(savedThoughts) : [];
-  });
-  const [currentThought, setCurrentThought] = useState<string>("");
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [selectedThought, setSelectedThought] = useState<string | null>(null);
 
-  useEffect(() => {
-    localStorage.setItem("thoughts", JSON.stringify(thoughts));
-  }, [thoughts]);
+  const navigate = useNavigate();
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setCurrentThought(event.target.value);
-    if (inputRef.current) {
-      inputRef.current.style.height = "auto"; // Reset height
-      inputRef.current.style.height = `${inputRef.current.scrollHeight}px`; // Set height to match content
-    }
+  const handleThoughtSelect = (thought: string) => {
+    setSelectedThought(thought);
+    navigate("/focused-thought");
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === "Enter" && !event.shiftKey && currentThought.trim()) {
-      event.preventDefault(); // Prevent line break
-      setThoughts([currentThought, ...thoughts]);
-      setCurrentThought("");
-    }
+  const handleCloseFocusedThought = () => {
+    setSelectedThought(null);
+    navigate("/");
   };
-
-  const isFocusedMode = currentThought.trim().length > 0;
 
   return (
-    <div className={`App ${isFocusedMode ? "focused-mode" : ""}`}>
-      <textarea
-        ref={inputRef}
-        value={currentThought}
-        onChange={handleInputChange}
-        onKeyDown={handleKeyDown}
-        placeholder="express a winding thought..."
-        className={`thought-input ${isFocusedMode ? "focused" : ""}`}
-        rows={1} // Initial number of rows
+    <Routes>
+      <Route
+        path="/"
+        element={<MainPage onThoughtSelect={handleThoughtSelect} />}
       />
-      {!isFocusedMode && (
-        <div className="thought-list">
-          {thoughts.map((thought, index) => (
-            <div key={index} className="thought-item">
-              {thought}
-            </div>
-          ))}
-        </div>
+      {selectedThought && (
+        <Route
+          path="/focused-thought"
+          element={
+            <FocusedThoughtPage
+              thought={selectedThought}
+              onClose={handleCloseFocusedThought}
+            />
+          }
+        />
       )}
-    </div>
+    </Routes>
   );
 };
 
-export default App;
+const Root: React.FC = () => {
+  return (
+    <Router>
+      <App />
+    </Router>
+  );
+};
+
+export default Root;
