@@ -1,17 +1,38 @@
 import React, { useState, useEffect, useRef } from "react";
 import "../App.css";
+import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { db, auth } from "../firebase/firebaseConfig";
 
 const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ onThoughtSelect }) => {
-  const [thoughts, setThoughts] = useState<string[]>(() => {
-    const savedThoughts = localStorage.getItem("thoughts");
-    return savedThoughts ? JSON.parse(savedThoughts) : [];
-  });
+  const [thoughts, setThoughts] = useState<{ id: string; text: string }[]>([]);
   const [currentThought, setCurrentThought] = useState<string>("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    localStorage.setItem("thoughts", JSON.stringify(thoughts));
-  }, [thoughts]);
+    // Fetch thoughts from Firestore for the logged-in user
+    const fetchThoughts = async () => {
+      if (!auth.currentUser) return;
+
+      const q = query(
+        collection(db, "thoughts"),
+        where("userId", "==", auth.currentUser.uid),
+        orderBy("timestamp", "desc")
+      );
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const fetchedThoughts = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as { id: string; text: string }[];
+
+        setThoughts(fetchedThoughts);
+      });
+
+      return () => unsubscribe();
+    };
+
+    fetchThoughts();
+  }, []);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setCurrentThought(event.target.value);
@@ -21,12 +42,27 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ on
     }
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = async (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey && currentThought.trim()) {
       event.preventDefault(); // Prevent line break
-      setThoughts([currentThought, ...thoughts]);
-      onThoughtSelect(currentThought);
-      setCurrentThought("");
+
+      try {
+        const newThoughtRef = await addDoc(collection(db, "thoughts"), {
+          userId: auth.currentUser?.uid,
+          text: currentThought,
+          timestamp: serverTimestamp(),
+        });
+
+        console.log("Thought saved successfully with ID:", newThoughtRef.id);
+
+        // Navigate to the FocusedThoughtPage immediately after submission
+        onThoughtSelect(currentThought);
+
+        // Clear the input field
+        setCurrentThought("");
+      } catch (error) {
+        console.error("Error saving thought:", error);
+      }
     }
   };
 
@@ -45,15 +81,15 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ on
       />
       {!isFocusedMode && (
         <div className="thought-list">
-          {thoughts.map((thought, index) => (
+          {thoughts.map((thought) => (
             <div
-              key={index}
+              key={thought.id}
               className="thought-item"
               onClick={() => {
-                onThoughtSelect(thought);
+                onThoughtSelect(thought.text);
               }}
             >
-              {thought}
+              {thought.text}
             </div>
           ))}
         </div>
