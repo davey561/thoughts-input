@@ -56,7 +56,7 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ on
         });
 
         // Autofocus on the submitted thought
-        onThoughtSelect(currentThought);
+        // onThoughtSelect(currentThought);
 
         setCurrentThought(""); // Clear the input box
       } catch (error) {
@@ -111,9 +111,9 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ on
                 <div
                   key={thought.id}
                   className="thought-item"
-                  onClick={() => {
-                    onThoughtSelect(thought.text);
-                  }}
+                  // onClick={() => {
+                  //   onThoughtSelect(thought.text);
+                  // }}
                 >
                   {thought.text}
                 </div>
