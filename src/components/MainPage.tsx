@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import "../App.css";
-import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
+import { signOut } from "firebase/auth";
 import { db, auth } from "../firebase/firebaseConfig";
 
 const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ onThoughtSelect }) => {
   const [thoughts, setThoughts] = useState<{ id: string; text: string }[]>([]);
   const [currentThought, setCurrentThought] = useState<string>("");
+  const [loadingThoughts, setLoadingThoughts] = useState<boolean>(true); // Thoughts loading state
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    // Fetch thoughts from Firestore for the logged-in user
     const fetchThoughts = async () => {
       if (!auth.currentUser) return;
 
@@ -26,6 +27,7 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ on
         })) as { id: string; text: string }[];
 
         setThoughts(fetchedThoughts);
+        setLoadingThoughts(false); // Stop loading once thoughts are fetched
       });
 
       return () => unsubscribe();
@@ -47,18 +49,12 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ on
       event.preventDefault(); // Prevent line break
 
       try {
-        const newThoughtRef = await addDoc(collection(db, "thoughts"), {
+        await addDoc(collection(db, "thoughts"), {
           userId: auth.currentUser?.uid,
           text: currentThought,
           timestamp: serverTimestamp(),
         });
 
-        console.log("Thought saved successfully with ID:", newThoughtRef.id);
-
-        // Navigate to the FocusedThoughtPage immediately after submission
-        onThoughtSelect(currentThought);
-
-        // Clear the input field
         setCurrentThought("");
       } catch (error) {
         console.error("Error saving thought:", error);
@@ -66,20 +62,45 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ on
     }
   };
 
+  const handleContextMenu = (event: React.MouseEvent<HTMLTextAreaElement>) => {
+    event.preventDefault(); // Prevent default right-click menu
+    const email = auth.currentUser?.email || "unknown user";
+
+    if (window.confirm(`Wanna log out of ${email}?`)) {
+      handleSignOut();
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      console.log("Signed out successfully!");
+      // Redirect or trigger re-render if necessary
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   const isFocusedMode = currentThought.trim().length > 0;
 
   return (
     <div className={`App ${isFocusedMode ? "focused-mode" : ""}`}>
+      {/* Render the input box immediately */}
       <textarea
         ref={inputRef}
         value={currentThought}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
+        onContextMenu={handleContextMenu} // Add custom right-click logic
         placeholder="Express anything..."
         className={`thought-input ${isFocusedMode ? "focused" : ""}`}
         rows={1} // Initial number of rows
       />
-      {!isFocusedMode && (
+
+      {/* Show loading state or thoughts */}
+      {loadingThoughts ? (
+        <div className="loading-thoughts">Loading thoughts...</div>
+      ) : (
         <div className="thought-list">
           {thoughts.map((thought) => (
             <div
