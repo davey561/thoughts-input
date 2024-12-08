@@ -55,7 +55,10 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ on
           timestamp: serverTimestamp(),
         });
 
-        setCurrentThought("");
+        // Autofocus on the submitted thought
+        onThoughtSelect(currentThought);
+
+        setCurrentThought(""); // Clear the input box
       } catch (error) {
         console.error("Error saving thought:", error);
       }
@@ -85,7 +88,7 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ on
 
   return (
     <div className={`App ${isFocusedMode ? "focused-mode" : ""}`}>
-      {/* Render the input box immediately */}
+      {/* Render the input box */}
       <textarea
         ref={inputRef}
         value={currentThought}
@@ -97,23 +100,27 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ on
         rows={1} // Initial number of rows
       />
 
-      {/* Show loading state or thoughts */}
-      {loadingThoughts ? (
-        <div className="loading-thoughts">Loading thoughts...</div>
-      ) : (
-        <div className="thought-list">
-          {thoughts.map((thought) => (
-            <div
-              key={thought.id}
-              className="thought-item"
-              onClick={() => {
-                onThoughtSelect(thought.text);
-              }}
-            >
-              {thought.text}
+      {/* Show loading state or thoughts if the input is empty */}
+      {currentThought.trim().length === 0 && (
+        <>
+          {loadingThoughts ? (
+            <div className="loading-thoughts">Loading thoughts...</div>
+          ) : (
+            <div className="thought-list">
+              {thoughts.map((thought) => (
+                <div
+                  key={thought.id}
+                  className="thought-item"
+                  onClick={() => {
+                    onThoughtSelect(thought.text);
+                  }}
+                >
+                  {thought.text}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );
