@@ -1,13 +1,26 @@
 import React, { useState, useEffect, useRef } from "react";
 import "../App.css";
-import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  doc,
+  updateDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { db, auth } from "../firebase/firebaseConfig";
+import { generateEmbedding } from "../utils/openaiUtils"; // Adjust the import path as necessary
 
-const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ onThoughtSelect }) => {
+const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({
+  onThoughtSelect,
+}) => {
   const [thoughts, setThoughts] = useState<{ id: string; text: string }[]>([]);
   const [currentThought, setCurrentThought] = useState<string>("");
-  const [loadingThoughts, setLoadingThoughts] = useState<boolean>(true); // Thoughts loading state
+  const [loadingThoughts, setLoadingThoughts] = useState<boolean>(true);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -27,7 +40,7 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ on
         })) as { id: string; text: string }[];
 
         setThoughts(fetchedThoughts);
-        setLoadingThoughts(false); // Stop loading once thoughts are fetched
+        setLoadingThoughts(false);
       });
 
       return () => unsubscribe();
@@ -36,29 +49,45 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ on
     fetchThoughts();
   }, []);
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    event: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
     setCurrentThought(event.target.value);
     if (inputRef.current) {
-      inputRef.current.style.height = "auto"; // Reset height
-      inputRef.current.style.height = `${inputRef.current.scrollHeight}px`; // Set height to match content
+      inputRef.current.style.height = "auto";
+      inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
     }
   };
-
-  const handleKeyDown = async (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = async (
+    event: React.KeyboardEvent<HTMLTextAreaElement>
+  ) => {
     if (event.key === "Enter" && !event.shiftKey && currentThought.trim()) {
-      event.preventDefault(); // Prevent line break
-
+      event.preventDefault();
+  
       try {
-        await addDoc(collection(db, "thoughts"), {
+        // Save the thought to Firestore immediately
+        const docRef = await addDoc(collection(db, "thoughts"), {
           userId: auth.currentUser?.uid,
           text: currentThought,
           timestamp: serverTimestamp(),
         });
-
-        // Autofocus on the submitted thought
+  
+        // Navigate to the focused thought page immediately
         onThoughtSelect(currentThought);
-
-        setCurrentThought(""); // Clear the input box
+  
+        // Clear the input box
+        setCurrentThought("");
+  
+        // Generate the embedding asynchronously
+        generateEmbedding(currentThought)
+          .then((embedding) => {
+            console.log("Embedding generated:", embedding);
+            // Update Firestore document with the embedding
+            return updateDoc(doc(db, "thoughts", docRef.id), { embedding });
+          })
+          .catch((error) => {
+            console.error("Error generating embedding:", error);
+          });
       } catch (error) {
         console.error("Error saving thought:", error);
       }
@@ -66,7 +95,7 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ on
   };
 
   const handleContextMenu = (event: React.MouseEvent<HTMLTextAreaElement>) => {
-    event.preventDefault(); // Prevent default right-click menu
+    event.preventDefault();
     const email = auth.currentUser?.email || "unknown user";
 
     if (window.confirm(`Wanna log out of ${email}?`)) {
@@ -88,19 +117,17 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({ on
 
   return (
     <div className={`App ${isFocusedMode ? "focused-mode" : ""}`}>
-      {/* Render the input box */}
       <textarea
         ref={inputRef}
         value={currentThought}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
-        onContextMenu={handleContextMenu} // Add custom right-click logic
+        onContextMenu={handleContextMenu}
         placeholder="Express anything..."
         className={`thought-input ${isFocusedMode ? "focused" : ""}`}
-        rows={1} // Initial number of rows
+        rows={1}
       />
 
-      {/* Show loading state or thoughts if the input is empty */}
       {currentThought.trim().length === 0 && (
         <>
           {loadingThoughts ? (
