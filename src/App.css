@@ -3,12 +3,11 @@ body {
   font-family: monospace;
   background-color: #121212;
   color: #ffffff;
-
 }
 
 .App {
   font-family: monospace;
-  padding: 20px;
+  padding: 14px; /* Increased from 12px to 14px */
   max-width: 600px;
   margin: 0 auto;
   background-color: #121212;
@@ -16,16 +15,16 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px; /* Increased from 12px to 14px */
 }
 
 .thought-input {
-  font-family: monospace; /* Explicitly set monospace font */
+  font-family: monospace;
   width: 100%;
-  padding: 10px;
+  padding: 10px; /* Standardized padding */
   font-size: 16px;
   border: 1px solid #444;
-  border-radius: 8px;
+  border-radius: 6px; /* Consistent border radius */
   background-color: #121212;
   color: #ffffff;
   box-sizing: border-box;
@@ -46,24 +45,23 @@ body {
   color: #ffffff;
 }
 .thought-input::placeholder {
-  color: #555; /* Dimmed placeholder color */
-  font-family: monospace; /* Ensure the placeholder matches */
+  color: #555;
+  font-family: monospace;
 }
 
 .thought-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px; /* Increased from 12px */
 }
 
 .thought-item {
   background-color: #121212;
-  border-radius: 8px;
+  border-radius: 6px; /* Consistent border radius */
   border: 1px solid #444;
   word-wrap: break-word;
-  padding: 10px;
+  padding: 10px; /* Standardized padding */
   font-size: 16px;
-  margin-bottom: 10px;
   cursor: pointer;
   transition: background-color 0.2s;
 }
@@ -73,19 +71,19 @@ body {
 }
 
 .focused-thought-page {
-  padding: 20px;
+  padding: 14px; /* Increased from 12px */
   max-width: 600px;
   margin: 0 auto;
   background-color: #121212;
   color: #ffffff;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px; /* Increased from 12px */
 }
 
 .close-button {
   align-self: flex-start;
-  padding: 8px 16px;
+  padding: 4px 8px; /* Reduced padding to keep it compact */
   font-size: 14px;
   background-color: #444;
   color: #ffffff;
@@ -100,30 +98,28 @@ body {
 }
 
 .main-thought {
-  font-size: 18px;
-  font-weight: bold;
-  background-color: #1e1e1e;
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid #444;
+  font-size: 16px; /* Match font size to other thoughts */
+  font-weight: normal; /* Remove bold for consistency */
+  padding: 10px; /* Standardized padding */
+
   word-wrap: break-word;
 }
 
 .related-thoughts-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 14px; /* Increased from 12px */
+  margin-top: 14px; /* Increased from 12px */
 }
 
 .related-thought-item {
   background-color: #1e1e1e;
-  border-radius: 8px;
+  border-radius: 6px; /* Consistent border radius */
   border: 1px solid #444;
-  padding: 10px;
+  padding: 10px; /* Standardized padding */
   font-size: 14px;
   cursor: pointer;
-  flex: 1 1 calc(50% - 10px); /* Makes items wrap nicely */
+  flex: 1 1 calc(50% - 14px); /* Adjusted to match gap */
   transition: background-color 0.2s;
 }
 
