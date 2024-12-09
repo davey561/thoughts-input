@@ -3,6 +3,7 @@ body {
   font-family: monospace;
   background-color: #121212;
   color: #ffffff;
+
 }
 
 .App {
@@ -19,6 +20,7 @@ body {
 }
 
 .thought-input {
+  font-family: monospace; /* Explicitly set monospace font */
   width: 100%;
   padding: 10px;
   font-size: 16px;
@@ -42,6 +44,10 @@ body {
   border: none;
   background-color: transparent;
   color: #ffffff;
+}
+.thought-input::placeholder {
+  color: #555; /* Dimmed placeholder color */
+  font-family: monospace; /* Ensure the placeholder matches */
 }
 
 .thought-list {
