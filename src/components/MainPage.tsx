@@ -14,6 +14,9 @@ import {
 import { signOut } from "firebase/auth";
 import { db, auth } from "../firebase/firebaseConfig";
 import { generateEmbedding } from "../utils/openaiUtils"; // Adjust the import path as necessary
+import { getFunctions, httpsCallable } from 'firebase/functions';
+const functions = getFunctions();
+const createEmbedding = httpsCallable(functions, 'createEmbedding');
 
 const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({
   onThoughtSelect,
@@ -58,38 +61,31 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({
       inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
     }
   };
+  
   const handleKeyDown = async (
     event: React.KeyboardEvent<HTMLTextAreaElement>
   ) => {
-    if (event.key === "Enter" && !event.shiftKey && currentThought.trim()) {
+    if (event.key === 'Enter' && !event.shiftKey && currentThought.trim()) {
       event.preventDefault();
   
       try {
         // Save the thought to Firestore immediately
-        const docRef = await addDoc(collection(db, "thoughts"), {
+        const docRef = await addDoc(collection(db, 'thoughts'), {
           userId: auth.currentUser?.uid,
           text: currentThought,
           timestamp: serverTimestamp(),
         });
+
+        //embedding generated on cloud function completion now
+
   
         // Navigate to the focused thought page immediately
         onThoughtSelect(currentThought);
   
         // Clear the input box
-        setCurrentThought("");
-  
-        // Generate the embedding asynchronously
-        generateEmbedding(currentThought)
-          .then((embedding) => {
-            console.log("Embedding generated:", embedding);
-            // Update Firestore document with the embedding
-            return updateDoc(doc(db, "thoughts", docRef.id), { embedding });
-          })
-          .catch((error) => {
-            console.error("Error generating embedding:", error);
-          });
+        setCurrentThought('');
       } catch (error) {
-        console.error("Error saving thought:", error);
+        console.error('Error creating thought or embedding:', error);
       }
     }
   };
