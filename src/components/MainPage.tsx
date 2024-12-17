@@ -7,18 +7,12 @@ import {
   orderBy,
   onSnapshot,
   addDoc,
-  doc,
-  updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { db, auth } from "../firebase/firebaseConfig";
-import { generateEmbedding } from "../utils/openaiUtils"; // Adjust the import path as necessary
-import { getFunctions, httpsCallable } from 'firebase/functions';
-const functions = getFunctions();
-const createEmbedding = httpsCallable(functions, 'createEmbedding');
 
-const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({
+const MainPage: React.FC<{ onThoughtSelect: (thoughtId: string) => void }> = ({
   onThoughtSelect,
 }) => {
   const [thoughts, setThoughts] = useState<{ id: string; text: string }[]>([]);
@@ -26,6 +20,7 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({
   const [loadingThoughts, setLoadingThoughts] = useState<boolean>(true);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Fetch user's thoughts from Firestore
   useEffect(() => {
     const fetchThoughts = async () => {
       if (!auth.currentUser) return;
@@ -52,40 +47,37 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({
     fetchThoughts();
   }, []);
 
-  const handleInputChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement>
-  ) => {
+  // Adjust textarea height dynamically
+  const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setCurrentThought(event.target.value);
     if (inputRef.current) {
       inputRef.current.style.height = "auto";
       inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
     }
   };
-  
+
+  // Add new thought and save it to Firestore
   const handleKeyDown = async (
     event: React.KeyboardEvent<HTMLTextAreaElement>
   ) => {
-    if (event.key === 'Enter' && !event.shiftKey && currentThought.trim()) {
+    if (event.key === "Enter" && !event.shiftKey && currentThought.trim()) {
       event.preventDefault();
-  
+
       try {
-        // Save the thought to Firestore immediately
-        const docRef = await addDoc(collection(db, 'thoughts'), {
+        // Save the new thought to Firestore
+        const docRef = await addDoc(collection(db, "thoughts"), {
           userId: auth.currentUser?.uid,
           text: currentThought,
           timestamp: serverTimestamp(),
         });
 
-        //embedding generated on cloud function completion now
+        // Navigate to the focused thought page with the thought ID
+        onThoughtSelect(docRef.id);
 
-  
-        // Navigate to the focused thought page immediately
-        onThoughtSelect(currentThought);
-  
         // Clear the input box
-        setCurrentThought('');
+        setCurrentThought("");
       } catch (error) {
-        console.error('Error creating thought or embedding:', error);
+        console.error("Error creating thought:", error);
       }
     }
   };
@@ -103,7 +95,6 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({
     try {
       await signOut(auth);
       console.log("Signed out successfully!");
-      // Redirect or trigger re-render if necessary
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -135,7 +126,7 @@ const MainPage: React.FC<{ onThoughtSelect: (thought: string) => void }> = ({
                   key={thought.id}
                   className="thought-item"
                   onClick={() => {
-                    onThoughtSelect(thought.text);
+                    onThoughtSelect(thought.id); // Pass thought ID
                   }}
                 >
                   {thought.text}

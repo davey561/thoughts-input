@@ -1,40 +1,46 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../firebase/firebaseConfig"; // Adjust your Firestore configuration path
-import { collection, query, where, getDocs, runTransaction } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import "../App.css";
 
-const FocusedThoughtPage: React.FC<{ thought: string; onClose: () => void }> = ({ thought, onClose }) => {
+const FocusedThoughtPage: React.FC<{ thoughtId: string; onClose: () => void }> = ({
+  thoughtId,
+  onClose,
+}) => {
   const [relatedThoughts, setRelatedThoughts] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [currentThoughtText, setCurrentThoughtText] = useState<string>("");
 
   useEffect(() => {
     const fetchRelatedThoughts = async () => {
       try {
         setLoading(true);
 
-        // Step 1: Fetch the embedding of the current thought
-        const thoughtsCollection = collection(db, "thoughts");
-        const currentThoughtSnapshot = await getDocs(
-          query(thoughtsCollection, where("text", "==", thought))
-        );
+        // Step 1: Fetch the current thought's embedding and text using its ID
+        const thoughtRef = doc(db, "thoughts", thoughtId);
+        const thoughtSnapshot = await getDoc(thoughtRef);
 
-        if (currentThoughtSnapshot.empty) {
-          console.error("No thought found for:", thought);
+        if (!thoughtSnapshot.exists()) {
+          console.error("No thought document found for ID:", thoughtId);
           setLoading(false);
           return;
         }
 
-        const currentEmbedding = currentThoughtSnapshot.docs[0].data().embedding;
+        const thoughtData = thoughtSnapshot.data();
+        const currentEmbedding = thoughtData.embedding;
+        const currentText = thoughtData.text;
+
+        setCurrentThoughtText(currentText);
 
         if (!currentEmbedding) {
-          console.error("No embedding found for the thought");
+          console.error("No embedding found for the thought ID:", thoughtId);
           setLoading(false);
           return;
         }
 
-        // Step 2: Perform the vector search
+        // Step 2: Perform vector search using Firestore's REST API
         const response = await fetch(
-          `https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents:runQuery`,
+          `https://firestore.googleapis.com/v1/projects/pastself/databases/(default)/documents:runQuery`,
           {
             method: "POST",
             headers: {
@@ -46,7 +52,7 @@ const FocusedThoughtPage: React.FC<{ thought: string; onClose: () => void }> = (
                 vectorSearch: {
                   field: "embedding",
                   queryVector: currentEmbedding,
-                  topK: 5, // Fetch top 5 related thoughts
+                  topK: 5, // Top 5 most similar embeddings
                 },
               },
             }),
@@ -55,11 +61,13 @@ const FocusedThoughtPage: React.FC<{ thought: string; onClose: () => void }> = (
 
         const data = await response.json();
 
-        // Step 3: Extract and format the related thoughts
+        // Step 3: Safely extract and validate results
         const similarThoughts = data
-          .map((doc: any) => doc.document.fields.text.stringValue)
-          .filter((text: string) => text !== thought); // Exclude the current thought itself
+          .filter((item: any) => item?.document?.fields?.text?.stringValue) // Check structure
+          .map((item: any) => item.document.fields.text.stringValue)
+          .filter((text: string) => text !== currentText); // Exclude the current thought itself
 
+        console.log("Fetched related thoughts:", similarThoughts);
         setRelatedThoughts(similarThoughts);
       } catch (error) {
         console.error("Error fetching related thoughts:", error);
@@ -69,7 +77,7 @@ const FocusedThoughtPage: React.FC<{ thought: string; onClose: () => void }> = (
     };
 
     fetchRelatedThoughts();
-  }, [thought]);
+  }, [thoughtId]);
 
   return (
     <div className="focused-thought-page">
@@ -78,7 +86,7 @@ const FocusedThoughtPage: React.FC<{ thought: string; onClose: () => void }> = (
       </button>
       <div className="main-thought">
         <p>
-          <strong>{thought}</strong>
+          <strong>{currentThoughtText || "Loading..."}</strong>
         </p>
       </div>
 

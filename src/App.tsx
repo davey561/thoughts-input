@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  useNavigate,
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import MainPage from "./components/MainPage";
 import FocusedThoughtPage from "./components/FocusedThoughtPage";
@@ -7,7 +13,9 @@ import SignInPage from "./components/SignIn";
 import { auth } from "./firebase/firebaseConfig";
 
 const App: React.FC = () => {
-  const [selectedThought, setSelectedThought] = useState<string | null>(null);
+  const [selectedThoughtId, setSelectedThoughtId] = useState<string | null>(
+    null
+  );
   const [loadingAuth, setLoadingAuth] = useState<boolean>(true); // Auth loading state
   const [user, setUser] = useState<any | null>(null);
   const navigate = useNavigate();
@@ -21,13 +29,15 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleThoughtSelect = (thought: string) => {
-    setSelectedThought(thought);
+  // Handle when a thought is selected
+  const handleThoughtSelect = (thoughtId: string) => {
+    setSelectedThoughtId(thoughtId);
     navigate("/focused-thought");
   };
 
+  // Handle when focused thought page is closed
   const handleCloseFocusedThought = () => {
-    setSelectedThought(null);
+    setSelectedThoughtId(null);
     navigate("/");
   };
 
@@ -61,7 +71,7 @@ const App: React.FC = () => {
         element={
           <RequireAuth>
             <FocusedThoughtPage
-              thought={selectedThought || ""}
+              thoughtId={selectedThoughtId || ""}
               onClose={handleCloseFocusedThought}
             />
           </RequireAuth>
