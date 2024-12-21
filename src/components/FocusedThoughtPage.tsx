@@ -7,18 +7,22 @@ const functions = getFunctions()
 const db = getFirestore()
 const getRelatedThoughts = httpsCallable(functions, "getRelatedThoughts")
 
+interface ThoughtData {
+  id: string
+  text: string
+}
 interface FocusedThoughtPageProps {
   thoughtId: string
   onClose: () => void
 }
 
 interface RelatedThoughtsResponse {
-  relatedThoughts: string[]
+  relatedThoughts: ThoughtData[]
 }
 
 const FocusedThoughtPage: React.FC<FocusedThoughtPageProps> = ({ thoughtId, onClose }) => {
   const [currentThoughtText, setCurrentThoughtText] = useState<string>("")
-  const [relatedThoughts, setRelatedThoughts] = useState<string[]>([])
+  const [relatedThoughts, setRelatedThoughts] = useState<ThoughtData[]>([])
   const [loading, setLoading] = useState<boolean>(true)
 
   // Fetch the focused thought's text
@@ -78,7 +82,7 @@ const FocusedThoughtPage: React.FC<FocusedThoughtPageProps> = ({ thoughtId, onCl
           {relatedThoughts.length > 0 ? (
             relatedThoughts.map((thought, index) => (
               <div key={index} className="related-thought-item">
-                {thought}
+                {thought?.text}
               </div>
             ))
           ) : (

@@ -2,7 +2,7 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore"
 import { onCall } from "firebase-functions/v2/https"
 import { defineSecret } from "firebase-functions/params"
 import * as admin from "firebase-admin"
-import { getFirestore } from "firebase-admin/firestore"
+import { FieldValue, getFirestore } from "firebase-admin/firestore"
 // import fetch from 'node-fetch';
 
 const app = admin.initializeApp()
@@ -36,28 +36,30 @@ export const generateEmbedding = onDocumentCreated(
           model: "text-embedding-ada-002",
         }),
       })
-      // Check if the response is OK
+
       if (!response.ok) {
         console.error("Error from OpenAI API:", response.statusText)
         return
       }
 
       const result = await response.json()
-
-      // Log the full response to understand its structure
       console.log("OpenAI API response:", result)
 
-      // Ensure the response contains the expected data structure
       const embedding = result?.data?.[0]?.embedding
-
       if (!embedding) {
         console.error("No embedding returned from OpenAI API")
         return
       }
 
-      // Update the Firestore document with the embedding
-      await admin.firestore().doc(event.data?.ref.path).update({ embedding })
-      console.log("Firestore document updated with embedding")
+      // 2. Use FieldValue.vector(...) to store the embedding as a vector field
+      await admin
+        .firestore()
+        .doc(event.data?.ref.path)
+        .update({
+          embedding: FieldValue.vector(embedding), // <-- The important change
+        })
+
+      console.log("Firestore document updated with embedding as a vector field")
     } catch (error) {
       console.error("Error generating embedding:", error)
     }
@@ -83,6 +85,8 @@ export const getRelatedThoughts = onCall(async (request) => {
     const thoughtData = thoughtDoc.data()
     const queryEmbedding = thoughtData?.embedding
     console.log({ thoughtData })
+    console.log("Generated Embedding:", queryEmbedding)
+    console.log("Length of Embedding:", queryEmbedding?.length)
 
     if (!queryEmbedding) {
       throw new Error("No embedding found for the provided thought.")
@@ -94,7 +98,7 @@ export const getRelatedThoughts = onCall(async (request) => {
       .findNearest({
         queryVector: queryEmbedding,
         vectorField: "embedding",
-        limit: 1,
+        limit: 5,
         distanceMeasure: "COSINE",
       })
       .get()
