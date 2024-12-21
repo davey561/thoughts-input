@@ -98,7 +98,7 @@ export const getRelatedThoughts = onCall(async (request) => {
       .findNearest({
         queryVector: queryEmbedding,
         vectorField: "embedding",
-        limit: 5,
+        limit: 50,
         distanceMeasure: "COSINE",
       })
       .get()

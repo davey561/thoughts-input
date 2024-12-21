@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import "../App.css";
+import React, { useState, useEffect, useRef } from "react"
+import "../App.css"
 import {
   collection,
   query,
@@ -8,60 +8,60 @@ import {
   onSnapshot,
   addDoc,
   serverTimestamp,
-} from "firebase/firestore";
-import { signOut } from "firebase/auth";
-import { db, auth } from "../firebase/firebaseConfig";
+  deleteDoc,
+  doc,
+} from "firebase/firestore"
+import { signOut } from "firebase/auth"
+import { db, auth } from "../firebase/firebaseConfig"
 
 const MainPage: React.FC<{ onThoughtSelect: (thoughtId: string) => void }> = ({
   onThoughtSelect,
 }) => {
-  const [thoughts, setThoughts] = useState<{ id: string; text: string }[]>([]);
-  const [currentThought, setCurrentThought] = useState<string>("");
-  const [loadingThoughts, setLoadingThoughts] = useState<boolean>(true);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [thoughts, setThoughts] = useState<{ id: string; text: string }[]>([])
+  const [currentThought, setCurrentThought] = useState<string>("")
+  const [loadingThoughts, setLoadingThoughts] = useState<boolean>(true)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   // Fetch user's thoughts from Firestore
   useEffect(() => {
     const fetchThoughts = async () => {
-      if (!auth.currentUser) return;
+      if (!auth.currentUser) return
 
       const q = query(
         collection(db, "thoughts"),
         where("userId", "==", auth.currentUser.uid),
         orderBy("timestamp", "desc")
-      );
+      )
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const fetchedThoughts = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        })) as { id: string; text: string }[];
+        })) as { id: string; text: string }[]
 
-        setThoughts(fetchedThoughts);
-        setLoadingThoughts(false);
-      });
+        setThoughts(fetchedThoughts)
+        setLoadingThoughts(false)
+      })
 
-      return () => unsubscribe();
-    };
+      return () => unsubscribe()
+    }
 
-    fetchThoughts();
-  }, []);
+    fetchThoughts()
+  }, [])
 
   // Adjust textarea height dynamically
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setCurrentThought(event.target.value);
+    setCurrentThought(event.target.value)
     if (inputRef.current) {
-      inputRef.current.style.height = "auto";
-      inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+      inputRef.current.style.height = "auto"
+      inputRef.current.style.height = `${inputRef.current.scrollHeight}px`
     }
-  };
+  }
 
   // Add new thought and save it to Firestore
-  const handleKeyDown = async (
-    event: React.KeyboardEvent<HTMLTextAreaElement>
-  ) => {
+  const handleKeyDown = async (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey && currentThought.trim()) {
-      event.preventDefault();
+      event.preventDefault()
 
       try {
         // Save the new thought to Firestore
@@ -69,38 +69,54 @@ const MainPage: React.FC<{ onThoughtSelect: (thoughtId: string) => void }> = ({
           userId: auth.currentUser?.uid,
           text: currentThought,
           timestamp: serverTimestamp(),
-        });
+        })
 
         // Navigate to the focused thought page with the thought ID
-        onThoughtSelect(docRef.id);
+        onThoughtSelect(docRef.id)
 
         // Clear the input box
-        setCurrentThought("");
+        setCurrentThought("")
       } catch (error) {
-        console.error("Error creating thought:", error);
+        console.error("Error creating thought:", error)
       }
     }
-  };
+  }
 
   const handleContextMenu = (event: React.MouseEvent<HTMLTextAreaElement>) => {
-    event.preventDefault();
-    const email = auth.currentUser?.email || "unknown user";
+    event.preventDefault()
+    const email = auth.currentUser?.email || "unknown user"
 
     if (window.confirm(`Wanna log out of ${email}?`)) {
-      handleSignOut();
+      handleSignOut()
     }
-  };
+  }
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
-      console.log("Signed out successfully!");
+      await signOut(auth)
+      console.log("Signed out successfully!")
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("Error signing out:", error)
     }
-  };
+  }
+  const handleThoughtContextMenu = async (
+    event: React.MouseEvent<HTMLDivElement>,
+    thoughtId: string
+  ) => {
+    event.preventDefault() // Prevent the default context menu
 
-  const isFocusedMode = currentThought.trim().length > 0;
+    const confirmDelete = window.confirm("Are you sure you want to delete this thought?")
+    if (confirmDelete) {
+      try {
+        await deleteDoc(doc(db, "thoughts", thoughtId))
+        console.log("Thought deleted:", thoughtId)
+      } catch (error) {
+        console.error("Error deleting thought:", error)
+      }
+    }
+  }
+
+  const isFocusedMode = currentThought.trim().length > 0
 
   return (
     <div className={`App ${isFocusedMode ? "focused-mode" : ""}`}>
@@ -126,8 +142,9 @@ const MainPage: React.FC<{ onThoughtSelect: (thoughtId: string) => void }> = ({
                   key={thought.id}
                   className="thought-item"
                   onClick={() => {
-                    onThoughtSelect(thought.id); // Pass thought ID
+                    onThoughtSelect(thought.id) // Pass thought ID
                   }}
+                  onContextMenu={(e) => handleThoughtContextMenu(e, thought.id)}
                 >
                   {thought.text}
                 </div>
@@ -137,7 +154,7 @@ const MainPage: React.FC<{ onThoughtSelect: (thoughtId: string) => void }> = ({
         </>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default MainPage;
+export default MainPage
