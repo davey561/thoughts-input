@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react"
 import { getFunctions, httpsCallable } from "firebase/functions"
-import { getFirestore, doc, getDoc } from "firebase/firestore"
+import { getFirestore, doc, getDoc, collection, onSnapshot } from "firebase/firestore"
 import "../App.css"
+import { app } from "firebase-admin"
 
 const functions = getFunctions()
 const db = getFirestore()
@@ -46,8 +47,8 @@ const FocusedThoughtPage: React.FC<FocusedThoughtPageProps> = ({ thoughtId, onCl
     fetchThoughtText()
   }, [thoughtId])
 
-  // Fetch related thoughts
   useEffect(() => {
+    if (!thoughtId) return
     const fetchRelatedThoughts = async () => {
       try {
         setLoading(true)
@@ -62,7 +63,18 @@ const FocusedThoughtPage: React.FC<FocusedThoughtPageProps> = ({ thoughtId, onCl
         setLoading(false)
       }
     }
-    if (thoughtId) fetchRelatedThoughts()
+    const docRef = doc(db, "thoughts", thoughtId)
+    const unsubscribe = onSnapshot(docRef, (snapshot: any) => {
+      const data = snapshot.data()
+
+      if (!data) return
+      // If the embedding is present, fetch related thoughts
+      if (data.embedding) {
+        fetchRelatedThoughts()
+      }
+    })
+
+    return () => unsubscribe()
   }, [thoughtId])
 
   return (
