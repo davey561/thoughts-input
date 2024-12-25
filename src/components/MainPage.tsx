@@ -52,7 +52,6 @@ const MainPage: React.FC<{ onThoughtSelect: (thoughtId: string) => void }> = ({
   // Adjust textarea height dynamically
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = event.target.value
-    console.log(newText)
     setCurrentThought(newText)
     if (inputRef.current) {
       inputRef.current.style.height = "auto"
