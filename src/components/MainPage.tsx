@@ -51,7 +51,9 @@ const MainPage: React.FC<{ onThoughtSelect: (thoughtId: string) => void }> = ({
 
   // Adjust textarea height dynamically
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setCurrentThought(event.target.value)
+    const newText = event.target.value
+    console.log(newText)
+    setCurrentThought(newText)
     if (inputRef.current) {
       inputRef.current.style.height = "auto"
       inputRef.current.style.height = `${inputRef.current.scrollHeight}px`
@@ -145,6 +147,10 @@ const MainPage: React.FC<{ onThoughtSelect: (thoughtId: string) => void }> = ({
                     onThoughtSelect(thought.id) // Pass thought ID
                   }}
                   onContextMenu={(e) => handleThoughtContextMenu(e, thought.id)}
+                  style={{
+                    whiteSpace: "pre-wrap", // Ensures line breaks render correctly
+                    wordWrap: "break-word",
+                  }}
                 >
                   {thought.text}
                 </div>

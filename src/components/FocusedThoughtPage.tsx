@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react"
 import { getFunctions, httpsCallable } from "firebase/functions"
 import { getFirestore, doc, getDoc, collection, onSnapshot } from "firebase/firestore"
 import "../App.css"
-import { app } from "firebase-admin"
 
 const functions = getFunctions()
 const db = getFirestore()
@@ -12,6 +11,7 @@ interface ThoughtData {
   id: string
   text: string
 }
+
 interface FocusedThoughtPageProps {
   thoughtId: string
   onClose: () => void
@@ -84,7 +84,7 @@ const FocusedThoughtPage: React.FC<FocusedThoughtPageProps> = ({ thoughtId, onCl
       </button>
 
       <div className="main-thought">
-        <p>{currentThoughtText}</p>
+        <p style={{ whiteSpace: "pre-wrap" }}>{currentThoughtText}</p>
       </div>
 
       {loading ? (
@@ -93,7 +93,7 @@ const FocusedThoughtPage: React.FC<FocusedThoughtPageProps> = ({ thoughtId, onCl
         <div className="related-thoughts-row">
           {relatedThoughts.length > 0 ? (
             relatedThoughts.map((thought, index) => (
-              <div key={index} className="related-thought-item">
+              <div key={index} className="related-thought-item" style={{ whiteSpace: "pre-wrap" }}>
                 {thought?.text}
               </div>
             ))
