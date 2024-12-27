@@ -122,6 +122,12 @@ export const getRelatedThoughts = onCall(async (request) => {
   }
 })
 
+// Maximum number of texts to send in one embedding request
+const EMBEDDING_BATCH_SIZE = 10
+
+// Delay between API requests (in milliseconds) to avoid hitting rate limits
+const EMBEDDING_DELAY_MS = 1000
+
 export const bulkUploadNotes = onCall(async (request) => {
   const { notes } = request.data
 
@@ -130,46 +136,56 @@ export const bulkUploadNotes = onCall(async (request) => {
   }
 
   const batch = db.batch()
+  const embeddingPromises: Promise<void>[] = []
 
   try {
-    notes.forEach((note) => {
-      const { text, timestamp, userId } = note
-      if (!text || !timestamp || !userId) {
-        throw new Error("Each note must have 'text', 'timestamp', and 'userId'.")
-      }
+    // Split notes into batches for embedding
+    const embeddingBatches = chunkArray(notes, EMBEDDING_BATCH_SIZE)
 
-      const noteDocRef = db.collection("thoughts").doc()
-      batch.set(noteDocRef, {
-        text, // Note content
-        timestamp: admin.firestore.Timestamp.fromDate(new Date(timestamp)),
-        userId, // User ID
-      })
-    })
+    for (const [index, batchNotes] of embeddingBatches.entries()) {
+      // Process each batch sequentially with a delay
+      const delay = index * EMBEDDING_DELAY_MS
 
+      embeddingPromises.push(
+        new Promise((resolve) => setTimeout(resolve, delay)).then(async () => {
+          // Extract texts from the batch for embedding
+          const texts = batchNotes.map((note) => note.text)
+          const embeddings = await generateEmbeddingsForBulk(texts)
+
+          // Add each note to Firestore along with its embedding
+          batchNotes.forEach((note, i) => {
+            const { text, timestamp, userId } = note
+            const embedding = embeddings[i]
+            const noteDocRef = db.collection("thoughts").doc()
+
+            batch.set(noteDocRef, {
+              text,
+              timestamp: admin.firestore.Timestamp.fromDate(new Date(timestamp)),
+              userId,
+              embedding,
+            })
+          })
+        })
+      )
+    }
+
+    // Wait for all embedding batches to complete
+    await Promise.all(embeddingPromises)
+
+    // Commit Firestore batch
     await batch.commit()
 
-    console.log("Bulk upload completed successfully.")
-    return { success: true, message: "Notes uploaded successfully." }
+    console.log("Bulk upload completed successfully with embeddings.")
+    return { success: true, message: "Notes uploaded successfully with embeddings." }
   } catch (error) {
-    console.error("Error during bulk upload:", error)
-    throw new Error("Failed to upload notes.")
+    console.error("Error during bulk upload with embeddings:", error)
+    throw new Error("Failed to upload notes with embeddings.")
   }
 })
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY
-
-export const bulkUploadNotesWithEmbedding = onCall(async (request) => {
-  const { notes } = request.data
-
-  if (!Array.isArray(notes)) {
-    throw new Error("Invalid 'notes' parameter. Must be an array.")
-  }
-
-  const batch = db.batch()
-
+// Helper to generate embeddings for a batch of texts
+const generateEmbeddingsForBulk = async (texts: string[]): Promise<number[][]> => {
   try {
-    // Prepare embeddings for all notes
-    const texts = notes.map((note) => note.text)
     const response = await fetch("https://api.openai.com/v1/embeddings", {
       method: "POST",
       headers: {
@@ -183,36 +199,21 @@ export const bulkUploadNotesWithEmbedding = onCall(async (request) => {
     })
 
     if (!response.ok) {
-      throw new Error(`OpenAI API Error: ${response.statusText}`)
+      console.error("OpenAI API error:", response.statusText)
+      throw new Error("Failed to generate embeddings.")
     }
 
-    const result = (await response.json()) as { data: any[] }
-    const embeddings = result.data.map((item: any) => item.embedding)
-
-    // Add notes with embeddings to Firestore
-    notes.forEach((note, index) => {
-      const { text, timestamp, userId } = note
-      const embedding = embeddings[index]
-
-      if (!text || !timestamp || !userId || !embedding) {
-        throw new Error("Missing required fields for a note.")
-      }
-
-      const noteDocRef = db.collection("thoughts").doc()
-      batch.set(noteDocRef, {
-        text,
-        timestamp: admin.firestore.Timestamp.fromDate(new Date(timestamp)),
-        userId,
-        embedding, // Save embedding directly
-      })
-    })
-
-    await batch.commit()
-
-    console.log("Bulk upload with embeddings completed successfully.")
-    return { success: true, message: "Notes uploaded successfully with embeddings." }
+    const result = await response.json()
+    return result.data.map((item: any) => item.embedding)
   } catch (error) {
-    console.error("Error during bulk upload with embeddings:", error)
-    throw new Error("Failed to upload notes with embeddings.")
+    console.error("Error generating embeddings:", error)
+    throw new Error("Failed to generate embeddings.")
   }
-})
+}
+
+// Helper to chunk an array into smaller arrays
+const chunkArray = <T>(array: T[], size: number): T[][] => {
+  return Array.from({ length: Math.ceil(array.length / size) }, (_, index) =>
+    array.slice(index * size, index * size + size)
+  )
+}
