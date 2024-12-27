@@ -123,10 +123,10 @@ export const getRelatedThoughts = onCall(async (request) => {
 })
 
 // Maximum number of texts to send in one embedding request
-const EMBEDDING_BATCH_SIZE = 10
+const EMBEDDING_BATCH_SIZE = 40
 
 // Delay between API requests (in milliseconds) to avoid hitting rate limits
-const EMBEDDING_DELAY_MS = 1000
+const EMBEDDING_DELAY_MS = 50
 
 export const bulkUploadNotes = onCall(async (request) => {
   const { notes } = request.data
