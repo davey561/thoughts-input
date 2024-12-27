@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react"
-import { useNavigate, BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom"
 import { onAuthStateChanged } from "firebase/auth"
 import MainPage from "./components/MainPage"
 import FocusedThoughtPage from "./components/FocusedThoughtPage"
 import SignInPage from "./components/SignIn"
 import { auth } from "./firebase/firebaseConfig"
+import UploadNotesPage from "./components/UploadNotesPage"
 
 const App: React.FC = () => {
   const [selectedThoughtId, setSelectedThoughtId] = useState<string | null>(null)
@@ -70,6 +71,15 @@ const App: React.FC = () => {
             ) : (
               <Navigate to="/" replace />
             )}
+          </RequireAuth>
+        }
+      />
+      {/* New Route for Upload Notes */}
+      <Route
+        path="/upload"
+        element={
+          <RequireAuth>
+            <UploadNotesPage userId={user?.uid} />
           </RequireAuth>
         }
       />

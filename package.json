@@ -16,12 +16,16 @@
     "firebase": "^11.0.2",
     "firebase-admin": "^13.0.1",
     "firebase-functions": "^6.1.2",
+    "html": "^1.0.0",
+    "html-to-text": "^9.0.5",
     "openai": "^4.76.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-firebase-hooks": "^5.1.1",
-    "react-router-dom": "^7.0.2",
+    "react-router-dom": "^7.1.1",
     "react-scripts": "5.0.1",
+    "text": "^0.1.0",
+    "to": "^0.2.9",
     "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
   },
@@ -48,5 +52,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@types/html-to-text": "^9.0.4"
   }
 }
